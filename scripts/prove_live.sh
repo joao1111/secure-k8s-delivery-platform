@@ -52,7 +52,23 @@ deny "$root/app/fixtures/insecure/host-pid-pod.yaml" "Host namespaces and hostPa
 deny "$root/app/fixtures/insecure/host-ipc-pod.yaml" "Host namespaces and hostPath volumes are denied"
 
 kubectl apply -f "$root/policies/exceptions/allow-legacy-root.yaml"
-kubectl apply -f "$root/app/fixtures/insecure/legacy-root.yaml"
+legacy="$root/app/fixtures/insecure/legacy-root.yaml"
+err=$(mktemp)
+admitted=0
+for attempt in $(seq 1 30); do
+  if kubectl apply -f "$legacy" >"$err" 2>&1; then
+    admitted=1
+    break
+  fi
+  sleep 2
+done
+if [[ "$admitted" -ne 1 ]]; then
+  echo "labeled root pod was not admitted" >&2
+  cat "$err" >&2
+  rm -f "$err"
+  exit 1
+fi
+rm -f "$err"
 kubectl get pod legacy-root --namespace "$ns" >/dev/null
 echo "labeled root pod admitted by exception"
 deny "$root/app/fixtures/insecure/root-pod.yaml" "Containers must run as non-root"
