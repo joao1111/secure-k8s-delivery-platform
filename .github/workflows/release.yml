@@ -48,13 +48,6 @@ jobs:
           image="ghcr.io/joao1111/secure-k8s-delivery-platform@${DIGEST}"
           cosign sign --yes "$image"
           cosign attest --yes --type cyclonedx --predicate sbom.cdx.json "$image"
-      - name: Make the package public so the cluster can read the signature
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh api --method PATCH \
-            "/user/packages/container/secure-k8s-delivery-platform" \
-            -f visibility=public
 
   verify:
     needs: sign
@@ -64,4 +57,6 @@ jobs:
       - name: Reject the unsigned tag and admit the signed digest
         env:
           DIGEST: ${{ needs.sign.outputs.digest }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash scripts/prove_signature.sh

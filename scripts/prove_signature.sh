@@ -10,6 +10,15 @@ export PATH="$root/.tools:$root/.tools/venv/bin:$PATH"
 make kind-up
 trap 'make kind-down' EXIT
 
+if [[ -n "${GHCR_TOKEN:-}" ]]; then
+  kubectl create secret docker-registry ghcr \
+    --namespace kyverno \
+    --docker-server=ghcr.io \
+    --docker-username="${GHCR_USER:?set GHCR_USER}" \
+    --docker-password="$GHCR_TOKEN" \
+    --dry-run=client -o yaml | kubectl apply -f -
+fi
+
 ns=paved-road
 kubectl delete namespace "$ns" --ignore-not-found=true --wait=true
 kubectl create namespace "$ns"
@@ -17,6 +26,10 @@ kubectl apply -f policies/disallow-privileged.yaml
 kubectl apply -f policies/require-non-root.yaml
 kubectl apply -f policies/disallow-host-access.yaml
 kubectl apply -f policies/verify-release-signature.yaml
+if kubectl get secret ghcr --namespace kyverno >/dev/null 2>&1; then
+  kubectl patch imagevalidatingpolicy verify-release-signature --type=merge \
+    -p '{"spec":{"credentials":{"secrets":["ghcr"]}}}'
+fi
 
 err=$(mktemp)
 for _ in $(seq 1 30); do
@@ -56,5 +69,18 @@ spec:
         capabilities:
           drop: ["ALL"]
 EOF
-kubectl apply -f /tmp/signed-server.yaml
+signed_ok=0
+for _ in $(seq 1 30); do
+  if kubectl apply -f /tmp/signed-server.yaml >"$err" 2>&1; then
+    signed_ok=1
+    break
+  fi
+  sleep 2
+done
+if [[ "$signed_ok" -ne 1 ]]; then
+  echo "signed digest was not admitted" >&2
+  cat "$err" >&2
+  exit 1
+fi
+rm -f "$err"
 echo "signed digest admitted"

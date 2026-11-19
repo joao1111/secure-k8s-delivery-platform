@@ -118,4 +118,4 @@ controls:
     expect: deny
     proof: .github/workflows/release.yml
     residual: A signature shows that .github/workflows/release.yml on main produced that digest. It does not show the Dockerfile was benign. A compromised workflow identity can sign malware. Images outside ghcr.io/joao1111/secure-k8s-delivery-platform, including the nginx fixture, are not checked by this policy.
-    operability: Verification runs where the cluster can reach the registry and Rekor. There is no Cosign private key in this repo.
+    operability: Verification runs where the cluster can reach the registry and Rekor. The release job gives Kyverno a pull secret because GITHUB_TOKEN cannot change GHCR package visibility. There is no Cosign private key in this repo.
