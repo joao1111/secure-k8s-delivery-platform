@@ -1,0 +1,12 @@
+apiVersion: security.platform/v1
+kind: Suppression
+metadata:
+  name: checkov-public-fixture
+  annotations:
+    security.platform/reason: "The suppressed Terraform still opens storage. The gate skips it only until this date."
+    security.platform/owner: joao1111
+    security.platform/ticket: PLAT-4
+    security.platform/expires: "2027-12-31"
+spec:
+  tool: checkov
+  path: tests/scanners/checkov/suppressed/open.tf

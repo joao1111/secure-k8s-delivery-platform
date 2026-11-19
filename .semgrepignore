@@ -1,0 +1,3 @@
+# The default Semgrep ignore list drops directories named tests.
+# These fixtures are the proof, so they stay in the scan.
+!tests/scanners/semgrep/**

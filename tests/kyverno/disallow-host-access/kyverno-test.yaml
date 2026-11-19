@@ -1,0 +1,43 @@
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: disallow-host-access
+policies:
+  - ../../../policies/disallow-host-access.yaml
+resources:
+  - ../../../app/fixtures/secure/web.yaml
+  - ../../../app/fixtures/insecure/hostpath-pod.yaml
+  - ../../../app/fixtures/insecure/host-network-pod.yaml
+  - ../../../app/fixtures/insecure/host-pid-pod.yaml
+  - ../../../app/fixtures/insecure/host-ipc-pod.yaml
+results:
+  - isValidatingPolicy: true
+    policy: disallow-host-access
+    kind: Pod
+    resources:
+      - web
+    result: pass
+  - isValidatingPolicy: true
+    policy: disallow-host-access
+    kind: Pod
+    resources:
+      - hostpath-pod
+    result: fail
+  - isValidatingPolicy: true
+    policy: disallow-host-access
+    kind: Pod
+    resources:
+      - host-network-pod
+    result: fail
+  - isValidatingPolicy: true
+    policy: disallow-host-access
+    kind: Pod
+    resources:
+      - host-pid-pod
+    result: fail
+  - isValidatingPolicy: true
+    policy: disallow-host-access
+    kind: Pod
+    resources:
+      - host-ipc-pod
+    result: fail

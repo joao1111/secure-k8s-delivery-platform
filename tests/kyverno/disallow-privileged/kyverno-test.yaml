@@ -1,0 +1,29 @@
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: disallow-privileged
+policies:
+  - ../../../policies/disallow-privileged.yaml
+resources:
+  - ../../../app/fixtures/secure/web.yaml
+  - ../../../app/fixtures/insecure/privileged-pod.yaml
+  - ../../../app/fixtures/insecure/privileged-system.yaml
+results:
+  - isValidatingPolicy: true
+    policy: disallow-privileged
+    kind: Pod
+    resources:
+      - privileged-pod
+    result: fail
+  - isValidatingPolicy: true
+    policy: disallow-privileged
+    kind: Pod
+    resources:
+      - web
+    result: pass
+  - isValidatingPolicy: true
+    policy: disallow-privileged
+    kind: Pod
+    resources:
+      - privileged-system
+    result: skip

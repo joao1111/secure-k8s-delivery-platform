@@ -1,0 +1,17 @@
+apiVersion: policies.kyverno.io/v1
+kind: PolicyException
+metadata:
+  name: allow-legacy-root
+  namespace: paved-road
+  annotations:
+    security.platform/reason: "One labeled pod still starts as root while the image entrypoint is replaced. The paved-road pod does not use this exception."
+    security.platform/owner: joao1111
+    security.platform/ticket: PLAT-1
+    security.platform/expires: "2027-12-31"
+spec:
+  policyRefs:
+    - name: require-non-root
+      kind: ValidatingPolicy
+  matchConditions:
+    - name: labeled-legacy-root
+      expression: "has(object.metadata.labels) && 'security.platform/exception' in object.metadata.labels && object.metadata.labels['security.platform/exception'] == 'allow-legacy-root'"

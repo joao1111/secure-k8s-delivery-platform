@@ -1,0 +1,28 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-non-root
+  annotations:
+    security.platform/catalog: K01-non-root
+spec:
+  failurePolicy: Fail
+  validationActions:
+    - Deny
+  evaluation:
+    admission:
+      enabled: true
+    background:
+      enabled: false
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  matchConditions:
+    - name: not-system-namespace
+      expression: "!(object.metadata.namespace in ['kube-system', 'kyverno'])"
+  validations:
+    - expression: |
+        ((has(object.spec.securityContext) && has(object.spec.securityContext.runAsNonRoot) && object.spec.securityContext.runAsNonRoot == true) || (object.spec.containers.all(container, has(container.securityContext) && has(container.securityContext.runAsNonRoot) && container.securityContext.runAsNonRoot == true) && (!has(object.spec.initContainers) || object.spec.initContainers.all(container, has(container.securityContext) && has(container.securityContext.runAsNonRoot) && container.securityContext.runAsNonRoot == true)) && (!has(object.spec.ephemeralContainers) || object.spec.ephemeralContainers.all(container, has(container.securityContext) && has(container.securityContext.runAsNonRoot) && container.securityContext.runAsNonRoot == true)))) && ((!has(object.spec.securityContext) || !has(object.spec.securityContext.runAsUser) || object.spec.securityContext.runAsUser > 0) && object.spec.containers.all(container, !has(container.securityContext) || !has(container.securityContext.runAsUser) || container.securityContext.runAsUser > 0) && (!has(object.spec.initContainers) || object.spec.initContainers.all(container, !has(container.securityContext) || !has(container.securityContext.runAsUser) || container.securityContext.runAsUser > 0)) && (!has(object.spec.ephemeralContainers) || object.spec.ephemeralContainers.all(container, !has(container.securityContext) || !has(container.securityContext.runAsUser) || container.securityContext.runAsUser > 0)))
+      message: "Containers must run as non-root. Set spec.securityContext.runAsNonRoot to true and keep runAsUser unset or greater than 0. See app/fixtures/secure/web.yaml."

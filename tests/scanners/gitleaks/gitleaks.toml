@@ -1,0 +1,10 @@
+title = "delivery catalog"
+
+[extend]
+useDefault = false
+
+[[rules]]
+id = "aws-documentation-example-key"
+description = "AWS documents this access key id. This repo still rejects it unless a suppression is in force."
+regex = '''AKIAIOSFODNN7EXAMPLE'''
+keywords = ["AKIAIOSFODNN7EXAMPLE"]

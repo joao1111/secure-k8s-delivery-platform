@@ -1,0 +1,12 @@
+apiVersion: security.platform/v1
+kind: Suppression
+metadata:
+  name: expired-gitleaks
+  annotations:
+    security.platform/reason: "Expired on purpose so CI proves the date is checked."
+    security.platform/owner: joao1111
+    security.platform/ticket: PLAT-0
+    security.platform/expires: "2020-01-01"
+spec:
+  tool: gitleaks
+  path: tests/scanners/gitleaks/bad/leak.env

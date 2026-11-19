@@ -1,0 +1,31 @@
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: require-non-root
+policies:
+  - ../../../policies/require-non-root.yaml
+resources:
+  - ../../../app/fixtures/secure/web.yaml
+  - ../../../app/fixtures/insecure/root-pod.yaml
+  - ../../../app/fixtures/insecure/legacy-root.yaml
+exceptions:
+  - ../../../policies/exceptions/allow-legacy-root.yaml
+results:
+  - isValidatingPolicy: true
+    policy: require-non-root
+    kind: Pod
+    resources:
+      - web
+    result: pass
+  - isValidatingPolicy: true
+    policy: require-non-root
+    kind: Pod
+    resources:
+      - root-pod
+    result: fail
+  - isValidatingPolicy: true
+    policy: require-non-root
+    kind: Pod
+    resources:
+      - legacy-root
+    result: skip

@@ -1,0 +1,7 @@
+.tools/
+__pycache__/
+*.pyc
+.kube/
+*.tar
+sbom.cdx.json
+.trivy-cache/

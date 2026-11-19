@@ -1,0 +1,28 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: disallow-host-access
+  annotations:
+    security.platform/catalog: K01-host-access
+spec:
+  failurePolicy: Fail
+  validationActions:
+    - Deny
+  evaluation:
+    admission:
+      enabled: true
+    background:
+      enabled: false
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  matchConditions:
+    - name: not-system-namespace
+      expression: "!(object.metadata.namespace in ['kube-system', 'kyverno'])"
+  validations:
+    - expression: |
+        (!has(object.spec.hostNetwork) || object.spec.hostNetwork == false) && (!has(object.spec.hostPID) || object.spec.hostPID == false) && (!has(object.spec.hostIPC) || object.spec.hostIPC == false) && (!has(object.spec.volumes) || object.spec.volumes.all(volume, !has(volume.hostPath)))
+      message: "Host namespaces and hostPath volumes are denied. Remove hostNetwork, hostPID, hostIPC, and any hostPath volume. See app/fixtures/secure/web.yaml."

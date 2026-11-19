@@ -1,0 +1,12 @@
+apiVersion: security.platform/v1
+kind: Suppression
+metadata:
+  name: gitleaks-example-key
+  annotations:
+    security.platform/reason: "AWS documents this access key id as an example. The allowed fixture keeps it so the suppression, not an empty file, is what makes the scan clean."
+    security.platform/owner: joao1111
+    security.platform/ticket: PLAT-2
+    security.platform/expires: "2027-12-31"
+spec:
+  tool: gitleaks
+  path: tests/scanners/gitleaks/allowed/config.env

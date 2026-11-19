@@ -1,0 +1,36 @@
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+metadata:
+  name: verify-release-signature
+  annotations:
+    security.platform/catalog: CICD-SEC-9-signature
+spec:
+  failurePolicy: Fail
+  validationActions:
+    - Deny
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  matchConditions:
+    - name: not-system-namespace
+      expression: "!(object.metadata.namespace in ['kube-system', 'kyverno'])"
+  matchImageReferences:
+    - glob: ghcr.io/joao1111/secure-k8s-delivery-platform
+    - glob: ghcr.io/joao1111/secure-k8s-delivery-platform:*
+    - glob: ghcr.io/joao1111/secure-k8s-delivery-platform@*
+  attestors:
+    - name: github_release
+      cosign:
+        keyless:
+          identities:
+            - issuer: https://token.actions.githubusercontent.com
+              subject: https://github.com/joao1111/secure-k8s-delivery-platform/.github/workflows/release.yml@refs/heads/main
+        ctlog:
+          url: https://rekor.sigstore.dev
+  validations:
+    - expression: |
+        images.containers.map(image, verifyImageSignatures(image, [attestors.github_release])).all(e, e > 0)
+      message: "ghcr.io/joao1111/secure-k8s-delivery-platform must be signed by .github/workflows/release.yml on main. An unsigned tag is denied."

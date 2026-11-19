@@ -1,0 +1,121 @@
+controls:
+  - id: K01-privileged
+    threat: A privileged container can touch the host kernel.
+    owasp: OWASP Kubernetes Top 10 K01
+    control: policies/disallow-privileged.yaml
+    attack_fixture: app/fixtures/insecure/privileged-pod.yaml
+    happy_path: app/fixtures/secure/web.yaml
+    expect: deny
+    proof: kyverno test tests/kyverno/disallow-privileged
+    residual: A node compromise, a kubelet change, or a policy exception for this policy bypasses it. The rule does not stop a non-privileged image that is still malicious.
+    operability: failurePolicy is Fail. kube-system and kyverno are excluded so a webhook outage does not freeze cluster plumbing. Every other namespace fails closed.
+
+  - id: K01-non-root
+    threat: A container running as root has a shorter path to the node.
+    owasp: OWASP Kubernetes Top 10 K01
+    control: policies/require-non-root.yaml
+    attack_fixture: app/fixtures/insecure/root-pod.yaml
+    happy_path: app/fixtures/secure/web.yaml
+    expect: deny
+    proof: kyverno test tests/kyverno/require-non-root
+    residual: runAsNonRoot does not stop a binary that is vulnerable. Linux capabilities other than privilege escalation are not all denied by this row.
+    operability: The only exception is policies/exceptions/allow-legacy-root.yaml, and it expires. A pod without that label is still denied.
+
+  - id: K01-host-access
+    threat: hostPath and host namespaces remove the boundary between the container and the node.
+    owasp: OWASP Kubernetes Top 10 K01
+    control: policies/disallow-host-access.yaml
+    attack_fixture: app/fixtures/insecure/hostpath-pod.yaml
+    happy_path: app/fixtures/secure/web.yaml
+    expect: deny
+    proof: kyverno test tests/kyverno/disallow-host-access
+    residual: The test also denies hostNetwork, hostPID, and hostIPC. A volume that is not a hostPath, including a privileged CSI driver, is outside this rule.
+    operability: failurePolicy is Fail outside kube-system and kyverno.
+
+  - id: K01-exception-expiry
+    threat: A permanent exception becomes the real policy.
+    owasp: OWASP Kubernetes Top 10 K01
+    control: scripts/check_exceptions.py
+    attack_fixture: tests/exceptions/expired/allow-legacy-root.yaml
+    happy_path: policies/exceptions/allow-legacy-root.yaml
+    expect: deny
+    proof: python3 scripts/check_exceptions.py policies/exceptions
+    residual: The checker reads the expiry annotation. It does not delete an exception that is already applied to a cluster. CODEOWNERS requires review before the file changes.
+    operability: A missing reason, owner, ticket, or date fails the same way an expired date does. The unit test freezes the clock.
+
+  - id: CICD-SEC-6-gitleaks
+    threat: A cloud access key committed to the repo is a credential, including the AWS documentation example.
+    owasp: OWASP CI/CD Top 10 CICD-SEC-6
+    control: tests/scanners/gitleaks/gitleaks.toml
+    attack_fixture: tests/scanners/gitleaks/bad/leak.env
+    happy_path: tests/scanners/gitleaks/allowed/config.env
+    expect: deny
+    proof: python3 scripts/run_scanners.py
+    residual: The rule matches one known example key. It is not a full secret-scanning program, and a suppressed finding comes back only when the suppression date passes.
+    operability: suppressions/gitleaks-example-key.yaml has an owner and an expiry. The allowed fixture still contains the key so the clean result is the suppression, not an empty file.
+
+  - id: CICD-SEC-6-semgrep
+    threat: A password literal in source is copied into every image built from that source.
+    owasp: OWASP CI/CD Top 10 CICD-SEC-6
+    control: tests/scanners/semgrep/hardcoded-password.yaml
+    attack_fixture: tests/scanners/semgrep/bad/app.py
+    happy_path: tests/scanners/semgrep/good/app.py
+    expect: deny
+    proof: python3 scripts/run_scanners.py
+    residual: One custom rule detects a password assignment. It does not find injection, authentication bugs, or passwords built from concatenation.
+    operability: suppressions/semgrep-legacy-password.yaml expires. The suppressed file is scanned on its own and still has a finding.
+
+  - id: misconfig-public-storage
+    threat: Storage that allows public ACLs or public policies exposes data without touching the application.
+    owasp: OWASP Top 10:2025 Security Misconfiguration
+    control: tests/scanners/checkov/good/private.tf
+    attack_fixture: tests/scanners/checkov/bad/open.tf
+    happy_path: tests/scanners/checkov/good/private.tf
+    expect: deny
+    proof: python3 scripts/run_scanners.py
+    residual: The gate runs CKV_AWS_53 through CKV_AWS_56 only. Encryption, logging, and account-level public-access settings are not this row.
+    operability: suppressions/checkov-public-fixture.yaml expires. There is no checkov:skip comment on the fixture.
+
+  - id: K05-default-deny
+    threat: With a flat network, one compromised pod can connect to every other pod.
+    owasp: OWASP Kubernetes Top 10 K05
+    control: policies/default-deny.yaml
+    attack_fixture: app/fixtures/secure/client-blocked.yaml
+    happy_path: app/fixtures/secure/client.yaml
+    expect: deny
+    proof: bash scripts/prove_live.sh
+    residual: kindnet does not enforce NetworkPolicy. This cluster installs Calico. The policy is namespace-local, does not allow DNS, and does not stop hostNetwork pods that another rule already denies.
+    operability: The labeled client must still reach the golden pod. A control that also blocks the paved road is a failed row.
+
+  - id: CICD-SEC-4-action-pins
+    threat: An unpinned third-party action can change its code between two runs of the same workflow.
+    owasp: OWASP CI/CD Top 10 CICD-SEC-4
+    control: scripts/check_action_pins.py
+    attack_fixture: tests/actions/unpinned/workflow.yml
+    happy_path: tests/actions/pinned/workflow.yml
+    expect: deny
+    proof: python3 scripts/check_action_pins.py .github/workflows
+    residual: A pin is a commit, not a review of that commit. A compromised pin still runs.
+    operability: Local actions that start with ./ are allowed. Tags and branches are not.
+
+  - id: supply-chain-trivy
+    threat: A known vulnerable dependency is built into the artifact.
+    owasp: OWASP Top 10:2025 Software Supply Chain Failures
+    control: app/image/go.mod
+    attack_fixture: tests/scanners/trivy/bad/requirements.txt
+    happy_path: app/image/go.mod
+    expect: deny
+    proof: python3 scripts/run_scanners.py
+    residual: HIGH and CRITICAL only, with no reachability check. A vulnerable library that the process never calls still fails the fixture, and a vulnerability Trivy does not know about still passes.
+    operability: The paved-road module has no third-party Go dependencies. The release workflow uses the same severity on the built image.
+
+  - id: CICD-SEC-9-signature
+    threat: An image tag can be moved to content this repository did not build.
+    owasp: OWASP CI/CD Top 10 CICD-SEC-9
+    control: policies/verify-release-signature.yaml
+    attack_fixture: app/fixtures/insecure/unsigned-server.yaml
+    happy_path: app/image/Dockerfile
+    expect: deny
+    proof: .github/workflows/release.yml
+    residual: A signature shows that .github/workflows/release.yml on main produced that digest. It does not show the Dockerfile was benign. A compromised workflow identity can sign malware. Images outside ghcr.io/joao1111/secure-k8s-delivery-platform, including the nginx fixture, are not checked by this policy.
+    operability: Verification runs where the cluster can reach the registry and Rekor. There is no Cosign private key in this repo.
