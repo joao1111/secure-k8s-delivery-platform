@@ -1,4 +1,4 @@
-FROM golang:1.24.4-bookworm AS build
+FROM golang:1.27.4-bookworm AS build
 WORKDIR /src
 COPY go.mod main.go ./
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/server .

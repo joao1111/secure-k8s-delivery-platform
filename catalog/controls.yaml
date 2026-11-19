@@ -107,7 +107,7 @@ controls:
     expect: deny
     proof: python3 scripts/run_scanners.py
     residual: HIGH and CRITICAL only, with no reachability check. A vulnerable library that the process never calls still fails the fixture, and a vulnerability Trivy does not know about still passes.
-    operability: The paved-road module has no third-party Go dependencies. The release workflow uses the same severity on the built image.
+    operability: The paved-road module has no third-party Go dependencies. The release image is built with Go 1.27.4 because the image scan reads the standard library from the binary, which go.mod does not show. The release workflow uses the same HIGH and CRITICAL severity on that image.
 
   - id: CICD-SEC-9-signature
     threat: An image tag can be moved to content this repository did not build.

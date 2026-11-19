@@ -1,3 +1,3 @@
 module github.com/joao1111/secure-k8s-delivery-platform/app
 
-go 1.24.4
+go 1.27.4
