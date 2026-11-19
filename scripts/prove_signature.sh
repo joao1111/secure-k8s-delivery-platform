@@ -43,7 +43,11 @@ for _ in $(seq 1 30); do
   fi
   sleep 2
 done
-grep -q "must be signed" "$err"
+if ! grep -q "must be signed" "$err"; then
+  echo "unsigned image was not denied with must be signed" >&2
+  cat "$err" >&2
+  exit 1
+fi
 
 cat > /tmp/signed-server.yaml <<EOF
 apiVersion: v1

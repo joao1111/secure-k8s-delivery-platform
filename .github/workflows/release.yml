@@ -48,6 +48,13 @@ jobs:
           image="ghcr.io/joao1111/secure-k8s-delivery-platform@${DIGEST}"
           cosign sign --yes "$image"
           cosign attest --yes --type cyclonedx --predicate sbom.cdx.json "$image"
+      - name: Push an unsigned image with a different digest
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: app/image
+          push: true
+          tags: ghcr.io/joao1111/secure-k8s-delivery-platform:unsigned
+          labels: org.opencontainers.image.description=unsigned
 
   verify:
     needs: sign
