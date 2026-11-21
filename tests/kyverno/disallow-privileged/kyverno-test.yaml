@@ -6,6 +6,7 @@ policies:
   - ../../../policies/disallow-privileged.yaml
 resources:
   - ../../../app/fixtures/secure/web.yaml
+  - ../../../app/fixtures/secure/privileged-pod.yaml
   - ../../../app/fixtures/insecure/privileged-pod.yaml
   - ../../../app/fixtures/insecure/privileged-system.yaml
 results:
@@ -20,6 +21,12 @@ results:
     kind: Pod
     resources:
       - web
+    result: pass
+  - isValidatingPolicy: true
+    policy: disallow-privileged
+    kind: Pod
+    resources:
+      - secure-privileged-pod
     result: pass
   - isValidatingPolicy: true
     policy: disallow-privileged
