@@ -24,7 +24,7 @@ deny() {
   local attempt err
   err=$(mktemp)
   for attempt in $(seq 1 30); do
-    if kubectl apply -f "$file" >"$err" 2>&1; then
+    if kubectl apply --dry-run=server -f "$file" >"$err" 2>&1; then
       sleep 2
       continue
     fi

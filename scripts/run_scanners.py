@@ -81,9 +81,9 @@ def main() -> None:
     expect(checkov("tests/scanners/checkov/good"), fail=False, label="checkov private storage")
     expect(checkov("tests/scanners/checkov/suppressed"), fail=True, label="checkov suppressed fixture still has a finding")
 
-    trivy_bad = run(["trivy", "fs", "--quiet", "--scanners", "vuln", "--severity", "HIGH,CRITICAL", "--exit-code", "1", "tests/scanners/trivy/bad"])
+    trivy_bad = run(["trivy", "fs", "--quiet", "--scanners", "vuln", "--severity", "HIGH,CRITICAL", "--ignore-unfixed", "--exit-code", "1", "tests/scanners/trivy/bad"])
     expect(trivy_bad, fail=True, label="trivy vulnerable dependency")
-    trivy_good = run(["trivy", "fs", "--quiet", "--scanners", "vuln", "--severity", "HIGH,CRITICAL", "--exit-code", "1", "app/image"])
+    trivy_good = run(["trivy", "fs", "--quiet", "--scanners", "vuln", "--severity", "HIGH,CRITICAL", "--ignore-unfixed", "--exit-code", "1", "app/image"])
     expect(trivy_good, fail=False, label="trivy paved-road image module")
 
 

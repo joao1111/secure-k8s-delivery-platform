@@ -5,3 +5,5 @@ __pycache__/
 *.tar
 sbom.cdx.json
 .trivy-cache/
+
+.cursor/

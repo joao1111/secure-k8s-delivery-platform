@@ -25,7 +25,8 @@ A pull request can change files. It cannot sign an image. The signature subject 
 | A password literal in source | `CICD-SEC-6-semgrep` |
 | Storage left open to the world | `misconfig-public-storage` |
 | Any pod connecting to any pod | `K05-default-deny` |
-| An action that moves under a tag | `CICD-SEC-4-action-pins` |
+| An unpinned action or container image | `CICD-SEC-3-action-pins` |
+| A downloaded tool or manifest with the wrong bytes | `CICD-SEC-3-tool-checksums` |
 | A known vulnerable dependency | `supply-chain-trivy` |
 | An image tag this repo did not build | `CICD-SEC-9-signature` |
 

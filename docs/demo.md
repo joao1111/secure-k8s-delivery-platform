@@ -8,7 +8,7 @@ Offline, with no cluster:
 make prove
 ```
 
-Expected: Kyverno reports the privileged, root, and host fixtures failing and `app/fixtures/secure/web.yaml` passing. The expired exception and the expired suppression are rejected. Gitleaks, Semgrep, Checkov, and Trivy each fail their bad fixture and pass the paved road. The last line of the catalog check is `ok 11 catalog rows`.
+Expected: Kyverno reports the privileged, root, and host fixtures failing and `app/fixtures/secure/web.yaml` passing. The expired exception and the expired suppression are rejected. Gitleaks, Semgrep, Checkov, and Trivy each fail their bad fixture and pass the paved road. A wrong checksum is rejected. The last line of the catalog check is `ok 12 catalog rows`.
 
 Cluster:
 
@@ -28,7 +28,7 @@ Expected, in order:
 7. `unlabeled client blocked`.
 8. `prove-live ok`.
 
-The image signature check runs in `.github/workflows/release.yml` after a push to `main`. The unsigned pod is `app/fixtures/insecure/unsigned-server.yaml`. The workflow must print `unsigned image denied` and `signed digest admitted`.
+The image signature check runs in [release.yml](https://github.com/joao1111/secure-k8s-delivery-platform/actions/workflows/release.yml) after a push to `main`. The green run prints `unsigned image denied` and `signed digest admitted`. The unsigned pod is `app/fixtures/insecure/unsigned-server.yaml`. Kyverno pulls the private package with the `ghcr` pull secret.
 
 ```bash
 make kind-down

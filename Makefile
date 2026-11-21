@@ -18,6 +18,8 @@ prove: tools
 	$(PY) scripts/check_action_pins.py .github/workflows
 	@if $(PY) scripts/check_action_pins.py tests/actions/unpinned; then echo "unpinned action was accepted"; exit 1; fi
 	$(PY) scripts/check_action_pins.py tests/actions/pinned
+	$(PY) scripts/verify_sha256.py scripts/checksums/pinned.txt
+	@if $(PY) scripts/verify_sha256.py tests/checksums/bad/checksums.txt; then echo "wrong checksum was accepted"; exit 1; fi
 	$(PY) scripts/run_scanners.py
 	$(PY) scripts/check_catalog.py
 
@@ -25,7 +27,8 @@ kind-up: tools
 	@if ! kind get clusters | grep -qx secure-delivery; then \
 	  kind create cluster --name secure-delivery --config cluster/kind-config.yaml; \
 	fi
-	kubectl apply --server-side -f https://raw.githubusercontent.com/projectcalico/calico/v3.33.1/manifests/calico.yaml
+	$(PY) scripts/verify_sha256.py scripts/checksums/pinned.txt
+	kubectl apply --server-side -f cluster/calico.yaml
 	kubectl -n kube-system set env daemonset/calico-node FELIX_IGNORELOOSERPF=true
 	kubectl -n kube-system rollout status daemonset/calico-node --timeout=240s
 	kubectl wait --for=condition=Ready nodes --all --timeout=240s

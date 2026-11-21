@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reject GitHub Actions uses: lines that are not pinned to a commit SHA."""
+"""Reject GitHub Actions uses: lines that are not pinned to a commit SHA or an image digest."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from pathlib import Path
 
 USES = re.compile(r"^\s*-?\s*uses:\s*([^#\s]+)")
 SHA = re.compile(r"^[0-9a-f]{40}$")
+DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
 def unpinned(path: Path) -> list[str]:
@@ -23,7 +24,13 @@ def unpinned(path: Path) -> list[str]:
             if not match:
                 continue
             ref = match.group(1)
-            if ref.startswith("./") or ref.startswith("docker://"):
+            if ref.startswith("./"):
+                continue
+            if ref.startswith("docker://"):
+                image = ref.removeprefix("docker://")
+                pin = image.rsplit("@", 1)[1] if "@" in image else ""
+                if not DIGEST.fullmatch(pin):
+                    problems.append(f"{file}:{number}: {ref} is not an image digest")
                 continue
             if "@" not in ref:
                 problems.append(f"{file}:{number}: {ref} has no ref")

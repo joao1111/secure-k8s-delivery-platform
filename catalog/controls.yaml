@@ -1,7 +1,7 @@
 controls:
   - id: K01-privileged
     threat: A privileged container can touch the host kernel.
-    owasp: OWASP Kubernetes Top 10 K01
+    owasp: OWASP Kubernetes Top 10:2025 K01
     control: policies/disallow-privileged.yaml
     attack_fixture: app/fixtures/insecure/privileged-pod.yaml
     happy_path: app/fixtures/secure/web.yaml
@@ -12,7 +12,7 @@ controls:
 
   - id: K01-non-root
     threat: A container running as root has a shorter path to the node.
-    owasp: OWASP Kubernetes Top 10 K01
+    owasp: OWASP Kubernetes Top 10:2025 K01
     control: policies/require-non-root.yaml
     attack_fixture: app/fixtures/insecure/root-pod.yaml
     happy_path: app/fixtures/secure/web.yaml
@@ -23,7 +23,7 @@ controls:
 
   - id: K01-host-access
     threat: hostPath and host namespaces remove the boundary between the container and the node.
-    owasp: OWASP Kubernetes Top 10 K01
+    owasp: OWASP Kubernetes Top 10:2025 K01
     control: policies/disallow-host-access.yaml
     attack_fixture: app/fixtures/insecure/hostpath-pod.yaml
     happy_path: app/fixtures/secure/web.yaml
@@ -34,13 +34,13 @@ controls:
 
   - id: K01-exception-expiry
     threat: A permanent exception becomes the real policy.
-    owasp: OWASP Kubernetes Top 10 K01
+    owasp: OWASP Kubernetes Top 10:2025 K01
     control: scripts/check_exceptions.py
     attack_fixture: tests/exceptions/expired/allow-legacy-root.yaml
     happy_path: policies/exceptions/allow-legacy-root.yaml
     expect: deny
     proof: python3 scripts/check_exceptions.py policies/exceptions
-    residual: The checker reads the expiry annotation. It does not delete an exception that is already applied to a cluster. CODEOWNERS requires review before the file changes.
+    residual: The checker reads the expiry annotation. It does not delete an exception that is already applied to a cluster. CODEOWNERS names the reviewer. A solo maintainer can still approve their own exception.
     operability: A missing reason, owner, ticket, or date fails the same way an expired date does. The unit test freezes the clock.
 
   - id: CICD-SEC-6-gitleaks
@@ -78,7 +78,7 @@ controls:
 
   - id: K05-default-deny
     threat: With a flat network, one compromised pod can connect to every other pod.
-    owasp: OWASP Kubernetes Top 10 K05
+    owasp: OWASP Kubernetes Top 10:2025 K05
     control: policies/default-deny.yaml
     attack_fixture: app/fixtures/secure/client-blocked.yaml
     happy_path: app/fixtures/secure/client.yaml
@@ -87,16 +87,16 @@ controls:
     residual: kindnet does not enforce NetworkPolicy. This cluster installs Calico. The policy is namespace-local, does not allow DNS, and does not stop hostNetwork pods that another rule already denies.
     operability: The labeled client must still reach the golden pod. A control that also blocks the paved road is a failed row.
 
-  - id: CICD-SEC-4-action-pins
-    threat: An unpinned third-party action can change its code between two runs of the same workflow.
-    owasp: OWASP CI/CD Top 10 CICD-SEC-4
+  - id: CICD-SEC-3-action-pins
+    threat: An unpinned third-party action is a dependency that can change between two runs of the same workflow.
+    owasp: OWASP CI/CD Top 10 CICD-SEC-3
     control: scripts/check_action_pins.py
     attack_fixture: tests/actions/unpinned/workflow.yml
     happy_path: tests/actions/pinned/workflow.yml
     expect: deny
     proof: python3 scripts/check_action_pins.py .github/workflows
-    residual: A pin is a commit, not a review of that commit. A compromised pin still runs.
-    operability: Local actions that start with ./ are allowed. Tags and branches are not.
+    residual: A pin is a commit, not a review of that commit. A compromised pin still runs. This row is dependency-chain abuse, not poisoned pipeline execution.
+    operability: Local actions that start with ./ are allowed. A docker:// reference must be an image digest. Tags and branches are not.
 
   - id: supply-chain-trivy
     threat: A known vulnerable dependency is built into the artifact.
@@ -107,7 +107,18 @@ controls:
     expect: deny
     proof: python3 scripts/run_scanners.py
     residual: HIGH and CRITICAL only, with no reachability check. A vulnerable library that the process never calls still fails the fixture, and a vulnerability Trivy does not know about still passes.
-    operability: The paved-road module has no third-party Go dependencies. The release image is built with Go 1.27.4 because the image scan reads the standard library from the binary, which go.mod does not show. The release workflow uses the same HIGH and CRITICAL severity on that image.
+    operability: The paved-road module has no third-party Go dependencies. The release image is built with Go 1.27.4 because the image scan reads the standard library from the binary, which go.mod does not show. The release workflow uses the same HIGH and CRITICAL severity and ignores unfixed findings, matching this scan.
+
+  - id: CICD-SEC-3-tool-checksums
+    threat: A downloaded CLI or the Calico manifest can be different bytes than the ones this repo pinned.
+    owasp: OWASP CI/CD Top 10 CICD-SEC-3
+    control: scripts/install_tools.sh
+    attack_fixture: tests/checksums/bad/checksums.txt
+    happy_path: scripts/checksums/pinned.txt
+    expect: deny
+    proof: python3 scripts/verify_sha256.py scripts/checksums/pinned.txt
+    residual: A checksum published next to the binary does not help when that publisher is the thing that was compromised. This row checks bytes against a hash stored in the repo. A binary already present in .tools/ is not hashed again.
+    operability: scripts/install_tools.sh refuses a download whose sha256 is not in scripts/checksums/tools.txt. Pip installs from requirements.txt with --require-hashes. kind-up applies cluster/calico.yaml only after that file matches scripts/checksums/pinned.txt. Kyverno stays on Helm chart 3.10.0.
 
   - id: CICD-SEC-9-signature
     threat: An image tag can be moved to content this repository did not build.
